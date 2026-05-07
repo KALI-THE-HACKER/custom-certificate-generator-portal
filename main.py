@@ -29,11 +29,27 @@ def load_config() -> dict:
 
 config = load_config()
 
-app = FastAPI(title=f"{config.get('event_short_name', 'Event')} Certificate Generator")
+# Get app prefix from config (e.g., "" for root, "/certificate" for /certificate endpoint)
+APP_PREFIX = config.get("app_prefix", "").rstrip("/")
+
+app = FastAPI(
+    title=f"{config.get('event_short_name', 'Event')} Certificate Generator",
+    root_path=APP_PREFIX
+)
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
+
+# Helper function to generate URLs with the correct app prefix
+def url_for(path: str) -> str:
+    """Generate a URL with the correct app prefix."""
+    if not path.startswith("/"):
+        path = "/" + path
+    return f"{APP_PREFIX}{path}"
+
+# Add helper functions to template context
 templates.env.globals['config'] = config
+templates.env.globals['url_for'] = url_for
 
 
 # ── Data helpers ──────────────────────────────────────────────────────────────
@@ -185,18 +201,14 @@ async def preview_certificate(
     cert_type: str = Query(default="participation"),
 ):
     """Generate PDF and return as base64 for preview embedding."""
-    print(f"\n=== PREVIEW CERTIFICATE CALLED ===")
-    print(f"name={name}, team_name={team_name}, position={position}, cert_type={cert_type}")
     try:
         position_label = ordinal(position) if position <= 3 else None
         pdf_buf = fill_certificate_pdf(name, team_name, position_label, cert_type)
         pdf_buf.seek(0)
         pdf_bytes = pdf_buf.read()
         pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
-        print(f"PDF generated successfully, size: {len(pdf_base64)} chars")
         return {"pdf_base64": pdf_base64}
     except Exception as e:
-        print(f"ERROR: {e}")
         return {"error": str(e), "pdf_base64": ""}
 
 
@@ -226,9 +238,6 @@ def fill_certificate_pdf(name: str, team_name: str, position_label: Optional[str
     if not template_path.exists():
         raise HTTPException(status_code=500, detail=f"Certificate template not found: {template_path}")
     
-    print(f"\n=== PDF OVERLAY DEBUG ===")
-    print(f"Loading template from: {template_path}")
-    
     # Create an overlay with ReportLab
     overlay_buffer = io.BytesIO()
     
@@ -249,7 +258,6 @@ def fill_certificate_pdf(name: str, team_name: str, position_label: Optional[str
     x = (264 + 580) / 2  # center of field
     y = 295  # middle of field
     c.drawCentredString(x, y, name)
-    print(f"Drew participant_name '{name}' at ({x}, {y})")
     
     if cert_type == "winner":
         # Draw team position
@@ -257,22 +265,17 @@ def fill_certificate_pdf(name: str, team_name: str, position_label: Optional[str
         x = (148 + 296) / 2  # center of field
         y = 158  # middle of field
         c.drawCentredString(x, y, position_label or "Winner")
-        print(f"Drew team_position '{position_label or 'Winner'}' at ({x}, {y})")
     
     # Draw team name
     c.setFont("Helvetica", 11)
     x = (601 + 749) / 2  # center of field
     y = 157  # middle of field
     c.drawCentredString(x, y, team_name)
-    print(f"Drew team_name '{team_name}' at ({x}, {y})")
     
     c.save()
     overlay_buffer.seek(0)
     
-    print(f"Overlay created, size: {len(overlay_buffer.getvalue())} bytes")
-    
     # Now merge the overlay with the template using PyPDF2
-    print("Merging overlay with template...")
     template_reader = PyPdfReader(str(template_path))
     overlay_reader = PyPdfReader(overlay_buffer)
     
@@ -290,8 +293,6 @@ def fill_certificate_pdf(name: str, team_name: str, position_label: Optional[str
     writer.write(output_buffer)
     output_buffer.seek(0)
     
-    print(f"PDF written to buffer, size: {len(output_buffer.getvalue())} bytes")
-    print(f"=== END DEBUG ===")
     return output_buffer
 
 

@@ -110,3 +110,115 @@ Or use Gunicorn:
 ```bash
 gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 ```
+
+---
+
+## Deploying on Custom Paths
+
+### Overview
+The application is now configured to work on any deployment path, not just `/`. This is useful when deploying behind reverse proxies or on subpaths.
+
+### Configuration
+
+To deploy the application on a custom path (e.g., `/certificate`, `/events/certificates`, etc.), simply update the `app_prefix` field in `config.json`:
+
+**Example 1: Deploy on `/certificate`**
+```json
+{
+  "app_prefix": "/certificate",
+  "event_name": "WEC CTF'26",
+  ...
+}
+```
+
+**Example 2: Deploy on root `/`**
+```json
+{
+  "app_prefix": "",
+  "event_name": "WEC CTF'26",
+  ...
+}
+```
+
+**Example 3: Deploy on `/events/certificates`**
+```json
+{
+  "app_prefix": "/events/certificates",
+  "event_name": "WEC CTF'26",
+  ...
+}
+```
+
+### How It Works
+
+1. **Configuration-Based**: The `app_prefix` setting in `config.json` is read on startup.
+2. **FastAPI Root Path**: The application sets FastAPI's `root_path` parameter, which is used by the ASGI server for routing and reverse proxy compatibility.
+3. **Dynamic URLs**: All links in templates (forms, buttons, scripts) are generated dynamically using the `url_for()` helper function, which automatically prepends the app prefix.
+4. **Static Files**: CSS, images, and other static assets are served correctly regardless of the deployment path.
+
+### Reverse Proxy Setup
+
+#### Nginx Example
+```nginx
+location /certificate/ {
+    proxy_pass http://localhost:8000/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+**In `config.json`, set:**
+```json
+{
+  "app_prefix": "/certificate",
+  ...
+}
+```
+
+#### Apache Example
+```apache
+<Location /certificate/>
+    ProxyPass http://localhost:8000/
+    ProxyPassReverse http://localhost:8000/
+    ProxyPreserveHost On
+    RequestHeader set X-Forwarded-Proto "http"
+</Location>
+```
+
+**In `config.json`, set:**
+```json
+{
+  "app_prefix": "/certificate",
+  ...
+}
+```
+
+### Running with Uvicorn
+
+When running with Uvicorn, the `root_path` is set automatically based on `config.json`:
+
+```bash
+# Will serve at http://your-domain/certificate/
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+### Testing Different Paths Locally
+
+You can test different deployment paths by modifying `config.json` and restarting the server:
+
+```bash
+# Terminal 1: Start the server
+source venv/bin/activate
+uvicorn main:app --reload
+
+# Terminal 2: Test different paths
+curl http://localhost:8000/
+curl http://localhost:8000/generate
+curl http://localhost:8000/download-certificate?name=Test&team_name=Team&position=1&cert_type=winner
+```
+
+Then update `config.json` to test a subpath deployment (without actually using a reverse proxy).
+
+---

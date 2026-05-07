@@ -1,4 +1,5 @@
 {
+  "app_prefix": "/certificate",
   "event_name": "WEC CTF'26",
   "event_short_name": "WEC CTF'26",
   "organization_name": "Web Enthusiasts' Club, NITK",

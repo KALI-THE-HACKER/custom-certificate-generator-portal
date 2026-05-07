@@ -13,7 +13,7 @@
     </div>
     
     <div style="text-align: center;">
-        <a href="/download-certificate?name={{ name }}&team_name={{ team_name }}&position={{ position }}&cert_type={{ cert_type }}" style="text-decoration: none;">
+        <a href="{{ url_for('/download-certificate') }}?name={{ name }}&team_name={{ team_name }}&position={{ position }}&cert_type={{ cert_type }}" style="text-decoration: none;">
             <button style="padding: 1rem 3rem; font-size: 1.1rem; font-weight: 600;">Download Certificate</button>
         </a>
     </div>
@@ -23,8 +23,8 @@
 // Load and display PDF preview
 document.addEventListener('DOMContentLoaded', async function() {
     try {
-        const downloadUrl = new URL(document.querySelector('a[href^="/download-certificate"]').href);
-        const response = await fetch('/preview-certificate' + downloadUrl.search);
+        const downloadUrl = new URL(document.querySelector('a[href^="{{ url_for('/download-certificate') }}"]').href);
+        const response = await fetch('{{ url_for('/preview-certificate') }}' + downloadUrl.search);
         const data = await response.json();
         
         if (data.pdf_base64) {
