@@ -1,0 +1,22 @@
+{
+  "event_name": "WEC CTF'26",
+  "event_short_name": "WEC CTF'26",
+  "organization_name": "Web Enthusiasts' Club, NITK",
+  "organization_url": "https://webclub.nitk.ac.in",
+  "portal_headline": "WEC CTF'26 Certificate Portal",
+  "index_title": "Claim Your Official Certificate",
+  "index_subtitle": "Enter your registered details below to generate certificate.",
+  "error_message": "No registration found for this email. Please use the email you registered for the event with.",
+  "theme_bg_color": "#000000",
+  "theme_panel_color": "#0a0a0a",
+  "theme_text_color": "#f8fafc",
+  "theme_text_secondary": "#94a3b8",
+  "theme_border_color": "#222222",
+  "theme_primary_color": "#3b82f6",
+  "theme_primary_gradient_start": "#60a5fa",
+  "theme_primary_gradient_end": "#3b82f6",
+  "theme_error_bg": "rgba(220, 38, 38, 0.1)",
+  "theme_error_text": "#f87171",
+  "theme_error_border": "#ef4444",
+  "copyright_text": "&copy; 2026 Web Enthusiasts' Club, NITK"
+}

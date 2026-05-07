@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ config.get('event_short_name', 'Event') }}{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: {{ config.get('theme_bg_color', '#000000') }};
+            color: {{ config.get('theme_text_color', '#f8fafc') }};
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: {{ config.get('theme_panel_color', '#0a0a0a') }};
+            padding: 2rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid {{ config.get('theme_border_color', '#222222') }};
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .header-logo { position: absolute; left: 2rem; top: 50%; transform: translateY(-50%); }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, {{ config.get('theme_primary_gradient_start', '#60a5fa') }} 0%, {{ config.get('theme_primary_gradient_end', '#3b82f6') }} 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+        main { flex: 1; padding: 2.5rem 1rem; max-width: 600px; margin: 0 auto; width: 100%; }
+        footer {
+            text-align: center;
+            padding: 1.5rem 1rem;
+            background: {{ config.get('theme_panel_color', '#0a0a0a') }};
+            border-top: 1px solid {{ config.get('theme_border_color', '#222222') }};
+            color: {{ config.get('theme_text_secondary', '#94a3b8') }};
+            font-size: 0.9rem;
+        }
+        button {
+            background: linear-gradient(135deg, {{ config.get('theme_primary_gradient_start', '#60a5fa') }} 0%, {{ config.get('theme_primary_color', '#3b82f6') }} 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px {{ config.get('theme_primary_color', '#3b82f6') }}33;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px {{ config.get('theme_primary_color', '#3b82f6') }}4c;
+        }
+        input[type="text"], input[type="email"] {
+            width: 100%;
+            padding: 0.75rem;
+            margin: 0.5rem 0 1rem 0;
+            border: 1px solid {{ config.get('theme_border_color', '#333333') }};
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            background: {{ config.get('theme_bg_color', '#000000') }};
+            color: {{ config.get('theme_text_color', '#f8fafc') }};
+        }
+        input[type="text"]:focus, input[type="email"]:focus {
+            outline: none;
+            border-color: {{ config.get('theme_primary_gradient_start', '#60a5fa') }};
+            box-shadow: 0 0 0 3px {{ config.get('theme_primary_gradient_start', '#60a5fa') }}1a;
+        }
+        label { font-weight: 500; color: #e2e8f0; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="{{ config.get('organization_url', '#') }}" class="header-logo">
+            <img src="/static/assets/logo.png" alt="{{ config.get('organization_name', 'Organization') }} Logo" style="height: 40px; object-fit: contain;">
+        </a>
+        <h1>{{ config.get('portal_headline', 'Certificate Portal') }}</h1>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    <footer>
+        <p>{{ config.get('copyright_text', '&copy; 2026 ' ~ config.get('organization_name', 'Organization')) | safe }}</p>
+    </footer>
+</body>
+</html>

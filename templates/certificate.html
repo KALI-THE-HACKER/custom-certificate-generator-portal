@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Certificate - {{ config.get('event_short_name', 'Event') }}{% endblock %}
+
+{% block content %}
+<style>
+    main { max-width: 1200px !important; }
+</style>
+<div style="background: {{ config.get('theme_panel_color', '#0a0a0a') }}; padding: 2.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); border: 1px solid {{ config.get('theme_border_color', '#222222') }};">
+    <!-- PDF Preview Section -->
+    <div id="preview-container" style="margin-bottom: 2rem; text-align: center;">
+        <p style="color: {{ config.get('theme_text_secondary', '#94a3b8') }}; margin: 0; font-size: 0.9rem;">📄 Generating certificate preview...</p>
+    </div>
+    
+    <div style="text-align: center;">
+        <a href="/download-certificate?name={{ name }}&team_name={{ team_name }}&position={{ position }}&cert_type={{ cert_type }}" style="text-decoration: none;">
+            <button style="padding: 1rem 3rem; font-size: 1.1rem; font-weight: 600;">Download Certificate</button>
+        </a>
+    </div>
+</div>
+
+<script>
+// Load and display PDF preview
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        const downloadUrl = new URL(document.querySelector('a[href^="/download-certificate"]').href);
+        const response = await fetch('/preview-certificate' + downloadUrl.search);
+        const data = await response.json();
+        
+        if (data.pdf_base64) {
+            const previewHtml = `
+                <iframe 
+                    src="data:application/pdf;base64,${data.pdf_base64}" 
+                    style="width: 100%; height: auto; aspect-ratio: 1.414 / 1; border: none; border-radius: 8px;"
+                    title="Certificate Preview">
+                </iframe>
+            `;
+            document.getElementById('preview-container').innerHTML = previewHtml;
+        }
+    } catch (error) {
+        console.error('Error loading PDF preview:', error);
+        document.getElementById('preview-container').innerHTML = '<p style="color: {{ config.get('theme_error_text', '#f87171') }};">Error loading preview</p>';
+    }
+});
+</script>
+{% endblock %}
