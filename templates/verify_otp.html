@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Verify Email - {{ config.get('event_short_name', 'Event') }}{% endblock %}
+
+{% block content %}
+{% if error %}
+<div style="background: {{ config.get('theme_error_bg', 'rgba(220, 38, 38, 0.1)') }}; color: {{ config.get('theme_error_text', '#f87171') }}; padding: 1rem; border-radius: 6px; margin-bottom: 2rem; border: 1px solid {{ config.get('theme_error_border', '#ef4444') }};">
+    <strong>Error:</strong> {{ error }}
+</div>
+{% endif %}
+
+{% if success %}
+<div style="background: rgba(34, 197, 94, 0.1); color: #4ade80; padding: 1rem; border-radius: 6px; margin-bottom: 2rem; border: 1px solid #22c55e;">
+    {{ success }}
+</div>
+{% endif %}
+
+<div style="text-align: center; margin-bottom: 2rem;">
+    <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); margin-bottom: 1rem; font-size: 28px;">
+        ✉️
+    </div>
+    <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 0.5rem; color: {{ config.get('theme_text_color', '#f8fafc') }};">Verify Your Email</h2>
+    <p style="color: {{ config.get('theme_text_secondary', '#94a3b8') }}; font-weight: 300;">
+        We've sent a 6-digit verification code to<br>
+        <strong style="color: {{ config.get('theme_text_color', '#f8fafc') }};">{{ email }}</strong>
+    </p>
+</div>
+
+<div style="background: {{ config.get('theme_panel_color', '#0a0a0a') }}; padding: 2.2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); border: 1px solid {{ config.get('theme_border_color', '#222222') }};">
+    <form method="post" action="{{ url_for('/verify-otp') }}">
+        <input type="hidden" name="email" value="{{ email }}">
+        
+        <label for="otp" style="display: block; text-align: center; font-size: 0.95rem; margin-bottom: 0.75rem;">Enter 6-Digit Verification Code</label>
+        <input 
+            type="text" 
+            id="otp" 
+            name="otp" 
+            maxlength="6" 
+            pattern="[0-9]{6}" 
+            inputmode="numeric" 
+            autocomplete="one-time-code" 
+            placeholder="······" 
+            required 
+            autofocus
+            style="text-align: center; font-size: 2rem; font-weight: 700; letter-spacing: 12px; font-family: monospace; padding: 0.8rem; margin-bottom: 1.5rem;"
+        >
+        
+        <button type="submit" style="width: 100%; padding: 0.9rem; font-size: 1.05rem; font-weight: 600;">
+            Verify & Claim Certificate
+        </button>
+    </form>
+    
+    <div style="margin-top: 1.75rem; pt-4; border-top: 1px solid {{ config.get('theme_border_color', '#222222') }}; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
+        <form method="post" action="{{ url_for('/resend-otp') }}" id="resend-form" style="margin: 0;">
+            <input type="hidden" name="email" value="{{ email }}">
+            <button 
+                type="submit" 
+                id="resend-btn" 
+                style="background: transparent; color: {{ config.get('theme_primary_gradient_start', '#60a5fa') }}; border: 1px solid {{ config.get('theme_border_color', '#333333') }}; padding: 0.4rem 0.9rem; font-size: 0.85rem; box-shadow: none;"
+            >
+                Resend Code
+            </button>
+        </form>
+        
+        <a href="{{ url_for('/') }}" style="color: {{ config.get('theme_text_secondary', '#94a3b8') }}; text-decoration: none; font-size: 0.85rem; transition: color 0.2s ease;">
+            &larr; Change Email
+        </a>
+    </div>
+</div>
+
+<script>
+// Auto-focus and numeric enforcement
+const otpInput = document.getElementById('otp');
+if (otpInput) {
+    otpInput.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^0-9]/g, '');
+    });
+}
+
+// Resend Cooldown Timer
+const resendBtn = document.getElementById('resend-btn');
+const cooldownSeconds = {{ cooldown_remaining | default(0) }};
+
+if (cooldownSeconds > 0 && resendBtn) {
+    let remaining = cooldownSeconds;
+    resendBtn.disabled = true;
+    resendBtn.style.opacity = '0.5';
+    resendBtn.style.cursor = 'not-allowed';
+    
+    const interval = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+            clearInterval(interval);
+            resendBtn.disabled = false;
+            resendBtn.style.opacity = '1';
+            resendBtn.style.cursor = 'pointer';
+            resendBtn.innerText = 'Resend Code';
+        } else {
+            resendBtn.innerText = `Resend in ${remaining}s`;
+        }
+    }, 1000);
+}
+</script>
+{% endblock %}
