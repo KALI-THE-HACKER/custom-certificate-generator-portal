@@ -222,3 +222,85 @@ curl http://localhost:8000/download-certificate?name=Test&team_name=Team&positio
 Then update `config.json` to test a subpath deployment (without actually using a reverse proxy).
 
 ---
+
+---
+
+## 📦 Bulk Certificate Generation
+
+### CLI Tool (`cli_bulk.py`)
+
+Generate certificates for hundreds of participants in batch with progress tracking, resume capability, and ZIP output.
+
+```bash
+# Basic usage
+python cli_bulk.py --csv data/participants.csv --output ./certs/
+
+# With ZIP archive
+python cli_bulk.py --csv data/participants.csv --output ./certs/ --zip
+
+# Resume interrupted generation
+python cli_bulk.py --csv data/participants.csv --output ./certs/ --resume
+
+# Clear checkpoint and start fresh
+python cli_bulk.py --csv data/participants.csv --output ./certs/ --no-resume
+```
+
+**Features:**
+- 📊 **Progress tracking** with ETA
+- 🔄 **Resume capability** - checkpoints every 10 certificates
+- 📦 **ZIP output** with manifest CSV
+- ⏭️ **Skip existing** - don't regenerate completed certificates
+- 📋 **Manifest CSV** with all generation details
+
+### API Endpoint (`POST /api/v1/certificates/bulk`)
+
+```bash
+# With curl - returns ZIP
+curl -X POST "https://your-domain/certificate/api/v1/certificates/bulk" \
+  -F "csv_file=@participants.csv" \
+  -F "create_zip=true" \
+  --output certificates.zip
+
+# Without ZIP - returns JSON manifest
+curl -X POST "https://your-domain/certificate/api/v1/certificates/bulk" \
+  -F "csv_file=@participants.csv"
+```
+
+**Response (JSON):**
+```json
+{
+  "generated": 95,
+  "failed": 2,
+  "manifest": [
+    {"email": "alice@example.com", "name": "Alice Smith", "team_name": "Team Alpha", "position": 1, "cert_type": "winner", "filename": "WEC_CTF26_Alice_Smith_certificate.pdf"},
+    {"email": "bob@example.com", "name": "Bob Johnson", "error": "Template not found"}
+  ]
+}
+```
+
+### CSV Format Requirements
+
+The CSV must contain at minimum these columns:
+- `email` - Participant email (used for lookup)
+- `team_name` - Team name for certificate
+- `team_place` - Numeric rank (1, 2, 3 = winner; 4+ = participation)
+- `certificate_name` (optional) - Name to print on certificate; falls back to `member_name`
+
+```csv
+email,member_name,member_id,member_score,team_name,team_id,team_place,team_score,certificate_name
+alice@example.com,Alice,101,1000,Team Alpha,1,1,1000,Alice Smith
+bob@example.com,Bob,102,1000,Team Alpha,1,1,1000,Bob Johnson
+```
+
+---
+
+## 🚀 API Endpoints Summary
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | Login page |
+| `/generate` | POST | Generate certificate (form) |
+| `/download-certificate` | GET | Download generated PDF |
+| `/preview-certificate` | GET | Preview PDF as base64 |
+| `/api/v1/certificates/bulk` | POST | Bulk generate from CSV upload |
+| `/templates-preview` | GET | Design preview page |
