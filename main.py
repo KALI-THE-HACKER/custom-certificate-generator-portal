@@ -296,3 +296,115 @@ def fill_certificate_pdf(name: str, team_name: str, position_label: Optional[str
     return output_buffer
 
 
+
+
+# ── Bulk Generation API ────────────────────────────────────────────────────────
+
+@app.post("/api/v1/certificates/bulk")
+async def bulk_generate_certificates(
+    request: Request,
+    csv_file: bytes = File(...),
+    create_zip: bool = Form(default=False),
+):
+    """
+    Bulk generate certificates from uploaded CSV.
+    Returns ZIP file if create_zip=true, otherwise returns JSON with manifest.
+    """
+    import tempfile
+    import csv as csv_module
+    from fastapi.responses import FileResponse
+    
+    # Parse CSV
+    try:
+        csv_content = csv_file.decode("utf-8")
+        reader = csv_module.DictReader(io.StringIO(csv_content))
+        participants = []
+        for row in reader:
+            email = row.get("email", "").strip().lower()
+            if not email:
+                continue
+            pos_str = row.get("team_place", "").strip()
+            try:
+                position = int(float(pos_str)) if pos_str else 99
+            except ValueError:
+                position = 99
+            
+            participants.append({
+                "email": email,
+                "name": row.get("certificate_name", "").strip() or row.get("member_name", "").strip(),
+                "team_name": row.get("team_name", "").strip(),
+                "position": position,
+                "cert_type": "winner" if position <= 3 else "participation",
+            })
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid CSV: {e}")
+    
+    if not participants:
+        raise HTTPException(status_code=400, detail="No valid participants in CSV")
+    
+    # Generate certificates
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_dir = Path(tmpdir) / "certs"
+        output_dir.mkdir()
+        
+        manifest = []
+        for participant in participants:
+            try:
+                pdf_buffer = fill_certificate_pdf(
+                    participant["name"],
+                    participant["team_name"],
+                    ordinal(participant["position"]) if participant["position"] <= 3 else None,
+                    participant["cert_type"]
+                )
+                
+                safe_name = "".join(c if c.isalnum() else "_" for c in participant["name"])
+                filename = f"{EVENT_SHORT}_{safe_name}_certificate.pdf"
+                pdf_path = output_dir / filename
+                
+                pdf_buffer.seek(0)
+                with open(pdf_path, "wb") as f:
+                    f.write(pdf_buffer.read())
+                
+                manifest.append({
+                    "email": participant["email"],
+                    "name": participant["name"],
+                    "team_name": participant["team_name"],
+                    "position": participant["position"],
+                    "cert_type": participant["cert_type"],
+                    "filename": filename,
+                })
+            except Exception as e:
+                manifest.append({
+                    "email": participant["email"],
+                    "name": participant["name"],
+                    "error": str(e),
+                })
+        
+        if create_zip:
+            # Create ZIP
+            zip_path = Path(tmpdir) / "certificates.zip"
+            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                for file_path in output_dir.rglob("*"):
+                    if file_path.is_file():
+                        zf.write(file_path, file_path.relative_to(output_dir))
+                # Add manifest
+                manifest_content = io.StringIO()
+                writer = csv_module.DictWriter(manifest_content, fieldnames=["email", "name", "team_name", "position", "cert_type", "filename", "error"])
+                writer.writeheader()
+                writer.writerows(manifest)
+                zf.writestr("manifest.csv", manifest_content.getvalue())
+            
+            return FileResponse(
+                zip_path,
+                media_type="application/zip",
+                filename=f"{EVENT_SHORT}_certificates.zip"
+            )
+        
+        return {
+            "generated": len([m for m in manifest if "error" not in m]),
+            "failed": len([m for m in manifest if "error" in m]),
+            "manifest": manifest,
+        }
+
+# Import for bulk API
+from fastapi import File
